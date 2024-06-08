@@ -13,7 +13,10 @@ export const SearchInput: React.FC<Props> = ({
   className,
 }) => (
   <div
-    className={twMerge('flex gap-3 border-b-2 border-gray-700 p-3', className)}
+    className={twMerge(
+      'flex gap-3 border-b-2 border-gray-700 bg-primary p-3',
+      className,
+    )}
   >
     <img className="aspect-square w-5" src={searchIcon} alt="Search" />
     <input

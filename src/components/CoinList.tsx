@@ -34,7 +34,7 @@ export const CoinList: React.FC<Props> = ({
   favoriteCoins,
 }) => (
   <div
-    className="overflow-y-auto p-1"
+    className="overflow-y-auto bg-primary bg-opacity-50 p-1 backdrop-blur-lg"
     style={{
       height: `${visibleCount * itemHeight}px`,
     }}
@@ -54,7 +54,7 @@ export const CoinList: React.FC<Props> = ({
         <button
           key={coin.id}
           onClick={coinOnClick}
-          className={`absolute flex w-full items-center gap-2 rounded-md px-3 text-left text-white hover:bg-gray-500`}
+          className={`absolute flex w-full items-center gap-2 rounded-md px-2 text-left text-white hover:bg-gray-500`}
           style={{
             top: `${(visibleRange.start + index) * itemHeight}px`,
             height: `${itemHeight}px`,

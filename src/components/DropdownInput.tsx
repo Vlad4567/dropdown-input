@@ -1,6 +1,6 @@
 import Fuse from 'fuse.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocalStorage, useOnClickOutside } from 'usehooks-ts';
+import { useLocalStorage, useOnClickOutside, useWindowSize } from 'usehooks-ts';
 import { twMerge } from 'tailwind-merge';
 import searchIcon from '../images/search.svg';
 import { Coin } from '../types/coin';
@@ -8,6 +8,7 @@ import { SearchInput } from './SearchInput';
 import { TabCoins } from '../types/enum';
 import { TabList } from './TabList';
 import { CoinList } from './CoinList';
+import { createPortal } from 'react-dom';
 
 const ITEM_HEIGHT = 35;
 
@@ -29,7 +30,12 @@ export const DropdownInput: React.FC<Props> = ({
     'favoriteCoins',
     [],
   );
+  const { width: windowWidth, height: windowHeight } = useWindowSize();
   const [activeTab, setActiveTab] = useState<TabCoins>(TabCoins.ALL_COINS);
+  const [position, setPosition] = useState<{
+    x: number | null;
+    y: number | null;
+  }>({ x: null, y: null });
   const dropdownButtonRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -64,13 +70,17 @@ export const DropdownInput: React.FC<Props> = ({
     }
   }, [query, coins, fuseCoins]);
 
+  useEffect(() => {
+    setVisibleRange({ start: 0, end: visibleCount });
+  }, [isOpen, visibleCount]);
+
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(event.target.value);
   };
 
   const visibleItems = useMemo(() => {
     if (TabCoins.ALL_COINS === activeTab) {
-      return filteredCoins.slice(visibleRange.start, visibleRange.end);
+      return filteredCoins.slice(visibleRange.start, visibleRange.end + 1);
     }
 
     return favoriteCoins.filter(coin =>
@@ -113,43 +123,79 @@ export const DropdownInput: React.FC<Props> = ({
     [favoriteCoins, setFavoriteCoins, setOfFavoriteCoins],
   );
 
+  useEffect(() => {
+    if (dropdownRef.current && dropdownButtonRef.current) {
+      const {
+        top: topParent,
+        left: leftParent,
+        bottom: bottomParent,
+        right: rightParent,
+      } = (dropdownButtonRef.current as HTMLElement).getBoundingClientRect();
+      const height = (dropdownRef.current as HTMLElement).offsetHeight;
+      const width = (dropdownRef.current as HTMLElement).offsetWidth;
+      let x = null;
+      let y = null;
+
+      if (windowWidth - leftParent >= width) {
+        x = leftParent;
+      } else if (rightParent >= width) {
+        x = rightParent - width;
+      }
+
+      if (windowHeight - bottomParent >= height) {
+        y = bottomParent;
+      } else if (topParent >= height) {
+        y = topParent - height;
+      }
+
+      setPosition({ x, y });
+    }
+  }, [isOpen, dropdownRef, windowWidth, windowHeight]);
+
   return (
-    <div className="relative">
+    <>
       <button
         ref={dropdownButtonRef}
         onClick={() => setIsOpen(prev => !prev)}
         className={twMerge(
-          `font-600 flex items-center justify-center gap-3 rounded-xl p-3 uppercase text-white hover:bg-gray-500`,
+          `font-600 flex h-fit w-fit items-center justify-center gap-3 rounded-xl p-3 uppercase text-white hover:bg-gray-500`,
           isOpen && 'border-2 border-gray-400 bg-gray-500',
         )}
       >
         <img className="aspect-square w-5" src={searchIcon} alt="Search" />
         Search
       </button>
-      {isOpen && (
-        <div
-          className={`absolute top-full w-max cursor-default flex-col rounded-lg border-2 border-gray-700 bg-primary`}
-          ref={dropdownRef}
-        >
-          <SearchInput value={query} onChange={handleInputChange} />
+      {isOpen &&
+        createPortal(
+          <div
+            className={`absolute top-full w-max cursor-default flex-col rounded-lg border-2 border-gray-700`}
+            style={{
+              left: `${position.x ?? windowWidth / 2}px`,
+              top: `${position.y ?? windowHeight / 2}px`,
+              transform: `translate(${position.x !== null ? '-0%' : '-50%'}, ${position.y !== null ? '-0%' : '-50%'})`,
+            }}
+            ref={dropdownRef}
+          >
+            <SearchInput value={query} onChange={handleInputChange} />
 
-          <TabList activeTab={activeTab} handleTabChange={handleTabChange} />
+            <TabList activeTab={activeTab} handleTabChange={handleTabChange} />
 
-          <CoinList
-            visibleItems={visibleItems}
-            visibleRange={visibleRange}
-            setOfFavoriteCoins={setOfFavoriteCoins}
-            handleFavoriteCoin={handleFavoriteCoin}
-            coinOnClick={coinOnClick}
-            handleScroll={handleScroll}
-            visibleCount={visibleCount}
-            itemHeight={ITEM_HEIGHT}
-            favoriteCoins={favoriteCoins}
-            filteredCoins={filteredCoins}
-            activeTab={activeTab}
-          />
-        </div>
-      )}
-    </div>
+            <CoinList
+              visibleItems={visibleItems}
+              visibleRange={visibleRange}
+              setOfFavoriteCoins={setOfFavoriteCoins}
+              handleFavoriteCoin={handleFavoriteCoin}
+              coinOnClick={coinOnClick}
+              handleScroll={handleScroll}
+              visibleCount={visibleCount}
+              itemHeight={ITEM_HEIGHT}
+              favoriteCoins={favoriteCoins}
+              filteredCoins={filteredCoins}
+              activeTab={activeTab}
+            />
+          </div>,
+          document.body,
+        )}
+    </>
   );
 };

@@ -15,7 +15,7 @@ export const TabList: React.FC<Props> = ({
 }) => (
   <ul
     className={twMerge(
-      'flex justify-evenly gap-1 p-1 text-white *:cursor-pointer',
+      'flex justify-between gap-1 bg-primary p-1 text-white *:cursor-pointer',
       className,
     )}
   >
